@@ -1,28 +1,62 @@
 
 # coding: utf-8
 
-# In[30]:
+# In[177]:
 
 
 
 
 
-# In[31]:
+# In[178]:
 
 
 import requests
+from bs4 import BeautifulSoup
 
 
-# In[32]:
+# In[182]:
 
 
-url = 'http://www.cebbank.com/eportal/ui?moduleId=12073&struts.portlet.action=/app/yglcAction!listProduct.action'
+def download_url(url,data,headers):
+    html = requests.post(url,data = data,headers = headers).text
+    return html
 
 
-# In[33]:
+# In[186]:
 
 
-headers = {
+ceb_func_name_list = []
+def html_parse(html):
+    soup = BeautifulSoup(html,'html.parser')
+    content = soup.find('div',attrs={'class':'lccp_main_content_lb'})
+    all_tr = content.find_all('tr')
+    page = soup.find('div',attrs={'lccp_page'})
+    currentpage = page.find('span',attrs={'id':'currentPage'}).text
+    totalpage = page.find('span',attrs={'id':'totalpage'}).text
+    while currentpage != totalpage:
+        ceb_func_name_list.append(func_detial(all_tr[1]))
+        ceb_func_name_list.append(func_detial(all_tr[2]))
+        ceb_func_name_list.append(func_detial(all_tr[3]))
+        ceb_func_name_list.append(func_detial(all_tr[4]))
+        ceb_func_name_list.append(func_detial(all_tr[5]))
+        currentpage = int(currentpage) + 1
+        data['page']=currentpage
+        return ceb_func_name_list,data
+    else :
+        ceb_func_name_list.append(func_detial(all_tr[1]))
+        return ceb_func_name_list,None
+        
+def func_detial(tr):
+    name = tr.find('a',attrs={'class':'lb_title'})
+    specifics = tr.find_all('td')
+    detial = str(specifics[1].text) + str(specifics[2].text) + str(specifics[3].text) + str(specifics[4].text)
+    func_num = tr.find('span').string
+    func_detial = name.text +  detial.replace('\r','').replace('\n','').replace('\t','') + func_num.replace('\r','').replace('\n','').replace('\t','')
+    return func_detial
+
+def main():
+    url = 'http://www.cebbank.com/eportal/ui?moduleId=12073&struts.portlet.action=/app/yglcAction!listProduct.action'
+    headers = {
     'Accept':'text/html, */*; q=0.01',
     'Accept-Encoding':'gzip, deflate',
     'Accept-Language':'zh-CN,zh;q=0.8',
@@ -35,12 +69,7 @@ headers = {
     'Referer':'http://www.cebbank.com/site/gryw/yglc/lccp49/index.html',
     'User-Agent':'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.101 Safari/537.36',
     'X-Requested-With':'XMLHttpRequest'}
-
-
-# In[43]:
-
-
-data = {
+    data = {
     'codeOrName':'',
     'TZBZMC':'RMB',
     'QGJE':'',
@@ -69,18 +98,27 @@ data = {
                          'wjyh1','smjjb9','ty90','tx16','ghjx6','wf36','ygxgt59','wbtcjh3','wbBjh77','wbTjh28',
                           'sycfxl','cfTjh','jgdhb','tydhb','jgxck','jgyxl','tyyxl','dgBTAcp','27637097','27637101','27637105',
                           '27637109','27637113','27637117','27637121','27637125','27637129','27637133']}
+   
+    with open('ceb_func_list.txt','w') as ceb:
+        while data:
+            html = download_url(url,data,headers)
+            ceb_func_name_list,data = html_parse(html)
+            ceb.write(repr(ceb_func_name_list))
+
+if __name__ == '__main__':
+    main()
 
 
-# In[46]:
+# In[ ]:
 
 
-re = requests.post(url,data = data,headers = headers)
 
 
-# In[47]:
+
+# In[ ]:
 
 
-print(re.text)
+
 
 
 # In[ ]:
